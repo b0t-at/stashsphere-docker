@@ -92,7 +92,7 @@ The stack configures two routers:
 	- rule: `Host(${TRAEFIK_HOST})`
 	- service port: `80`
 - **Backend router** `stashsphere-backend-api`
-	- rule: `Host(${TRAEFIK_HOST}) && (PathPrefix(/api) || PathPrefix(/assets) || PathPrefix(/swagger))`
+	- rule: `Host(${TRAEFIK_HOST}) && (PathPrefix(/api) || PathPrefix(/swagger) || (PathPrefix(/assets/) && !PathRegexp(^/assets/.*\..*)))`
 	- service port: `8081`
 
 Both use:
@@ -102,7 +102,9 @@ Both use:
 - certresolver: `${TRAEFIK_CERTRESOLVER}` (default `letsencrypt`)
 - docker network: `proxy`
 
-The frontend container injects `/config.json` with `apiHost` using `STASHSPHERE_PUBLIC_API_HOST`.
+The frontend container injects `/config.json` with `apiHost` using `STASHSPHERE_PUBLIC_API_HOST` (must be a full URL like `https://stash.example.com`).
+
+Why this matters: frontend bundles are served under `/assets/*.js|css`. The backend router intentionally excludes file-extension asset paths so static frontend files are not routed to backend and do not trigger 401 responses.
 
 ## GitHub Actions: required secrets and variables
 

@@ -20,7 +20,7 @@ services:
     image: ${STASHSPHERE_FRONTEND_IMAGE:-ghcr.io/b0t-at/stashsphere-frontend:latest}
     restart: unless-stopped
     environment:
-      STASHSPHERE_API_HOST: ${TRAEFIK_HOST:?set TRAEFIK_HOST}
+      STASHSPHERE_API_HOST: ${STASHSPHERE_PUBLIC_API_HOST:-https://stash.example.com}
     networks:
       - proxy
     labels:
@@ -68,7 +68,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.routers.stashsphere-backend-api.rule=Host(`${TRAEFIK_HOST:?set TRAEFIK_HOST}`) && (PathPrefix(`/api`) || PathPrefix(`/assets`) || PathPrefix(`/swagger`))
+      - traefik.http.routers.stashsphere-backend-api.rule=Host(`${TRAEFIK_HOST:?set TRAEFIK_HOST}`) && (PathPrefix(`/api`) || PathPrefix(`/swagger`) || (PathPrefix(`/assets/`) && !PathRegexp(`^/assets/.*\..*`)))
       - traefik.http.routers.stashsphere-backend-api.entrypoints=https
       - traefik.http.routers.stashsphere-backend-api.tls=true
       - traefik.http.routers.stashsphere-backend-api.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
