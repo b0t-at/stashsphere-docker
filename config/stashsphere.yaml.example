@@ -1,0 +1,38 @@
+database:
+  user: "stashsphere"
+  name: "stashsphere"
+  host: "postgres"
+  port: 5432
+  sslmode: "disable"
+
+listenAddress: ":8081"
+
+image:
+  path: "/data/image_store"
+  cachePath: "/data/image_cache"
+
+userDeletion:
+  gracePeriodMinutes: 1440
+
+invites:
+  enabled: false
+  code: ""
+
+domains:
+  allowed:
+    - "http://localhost:3000"
+  api: "localhost"
+
+frontendUrl: "http://localhost:3000"
+instanceName: "My StashSphere"
+
+auth:
+  disableSecureCookies: false
+
+email:
+  backend: "stdout"
+  fromAddr: "StashSphere <noreply@example.com>"
+  user: ""
+  password: ""
+  host: ""
+  port: 587

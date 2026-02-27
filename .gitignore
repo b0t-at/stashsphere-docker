@@ -1,0 +1,9 @@
+# Local environment overrides
+.env
+
+# Runtime-generated config
+config/stashsphere.yaml
+config/secrets.yaml
+
+# Persistent local data
+data/

@@ -1,0 +1,40 @@
+database:
+  user: "__DB_USER__"
+  name: "__DB_NAME__"
+  host: "__DB_HOST__"
+  password: "__DB_PASSWORD__"
+  port: __DB_PORT__
+  sslmode: "__DB_SSLMODE__"
+
+listenAddress: "__LISTEN_ADDRESS__"
+
+auth:
+  privateKey: "__PRIVATE_KEY__"
+  disableSecureCookies: false
+
+image:
+  path: "/data/image_store"
+  cachePath: "/data/image_cache"
+
+userDeletion:
+  gracePeriodMinutes: 1440
+
+invites:
+  enabled: false
+  code: ""
+
+domains:
+  allowed:
+    - "__ALLOWED_ORIGIN__"
+  api: "__API_DOMAIN__"
+
+frontendUrl: "__FRONTEND_URL__"
+instanceName: "__INSTANCE_NAME__"
+
+email:
+  backend: "stdout"
+  fromAddr: "StashSphere <noreply@example.com>"
+  user: ""
+  password: ""
+  host: ""
+  port: 587
