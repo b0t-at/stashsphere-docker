@@ -16,8 +16,26 @@ services:
       timeout: 5s
       retries: 10
 
-  stashsphere:
-    image: ${STASHSPHERE_IMAGE:-ghcr.io/b0t-at/stashsphere:latest}
+  stashsphere-frontend:
+    image: ${STASHSPHERE_FRONTEND_IMAGE:-ghcr.io/b0t-at/stashsphere-frontend:latest}
+    restart: unless-stopped
+    environment:
+      STASHSPHERE_API_HOST: ${TRAEFIK_HOST:?set TRAEFIK_HOST}
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.stashsphere-frontend.rule=Host(`${TRAEFIK_HOST:?set TRAEFIK_HOST}`)
+      - traefik.http.routers.stashsphere-frontend.entrypoints=https
+      - traefik.http.routers.stashsphere-frontend.tls=true
+      - traefik.http.routers.stashsphere-frontend.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.routers.stashsphere-frontend.priority=10
+      - traefik.http.services.stashsphere-frontend.loadbalancer.server.port=80
+
+  stashsphere-backend:
+    image: ${STASHSPHERE_BACKEND_IMAGE:-ghcr.io/b0t-at/stashsphere-backend:latest}
+    user: ${STASHSPHERE_CONTAINER_UID:-10001}:${STASHSPHERE_CONTAINER_GID:-10001}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -50,11 +68,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy
-      - traefik.http.routers.stashsphere.rule=Host(`${TRAEFIK_HOST:?set TRAEFIK_HOST}`)
-      - traefik.http.routers.stashsphere.entrypoints=https
-      - traefik.http.routers.stashsphere.tls=true
-      - traefik.http.routers.stashsphere.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
-      - traefik.http.services.stashsphere.loadbalancer.server.port=8081
+      - traefik.http.routers.stashsphere-backend-api.rule=Host(`${TRAEFIK_HOST:?set TRAEFIK_HOST}`) && (PathPrefix(`/api`) || PathPrefix(`/assets`) || PathPrefix(`/swagger`))
+      - traefik.http.routers.stashsphere-backend-api.entrypoints=https
+      - traefik.http.routers.stashsphere-backend-api.tls=true
+      - traefik.http.routers.stashsphere-backend-api.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.routers.stashsphere-backend-api.priority=100
+      - traefik.http.services.stashsphere-backend-api.loadbalancer.server.port=8081
 
 networks:
   proxy:

@@ -2,7 +2,7 @@
 
 End-to-end Docker setup for [StashSphere](https://github.com/stashsphere/stashsphere) with:
 
-- a reproducible Docker image build
+- reproducible backend **and frontend** Docker image builds
 - a ready-to-run `docker-compose.yml` that uses a hosted image
 - auto-generated default config on first start (optional but enabled by default)
 - GitHub Actions workflow to build and publish a public image to GHCR
@@ -16,13 +16,13 @@ End-to-end Docker setup for [StashSphere](https://github.com/stashsphere/stashsp
 
 2. **Reliable GitHub Action (public image hosting)**
 	 - Builds on PRs
-	 - Builds + pushes to **public GHCR** on `main` and `v*` tags
+	 - Builds + pushes **backend and frontend images** to public GHCR on `main` and `v*` tags
 	 - No redeploy hooks, no post-build deployment triggers
 
 3. **Runtime deployment with Traefik**
-	 - Compose consumes a hosted image (`STASHSPHERE_IMAGE`)
+	 - Compose consumes hosted images (`STASHSPHERE_BACKEND_IMAGE`, `STASHSPHERE_FRONTEND_IMAGE`)
 	 - Runtime is driven by `.env` variables
-	 - Traefik labels included (`entrypoints=https`, external network `proxy`)
+	 - Traefik labels included (`entrypoints=https`, external network `proxy`) with split routers for frontend/backend paths
 
 4. **Config + improvements**
 	 - Config bind mount via `./config:/config`
@@ -34,8 +34,11 @@ End-to-end Docker setup for [StashSphere](https://github.com/stashsphere/stashsp
 ## Files
 
 - `Dockerfile` – multi-stage build for StashSphere backend
+- `Dockerfile.frontend` – multi-stage build for StashSphere frontend
 - `docker/entrypoint.sh` – runtime bootstrap (default config + migration + serve)
 - `docker/default-config.yaml` – template used for first-start config generation
+- `docker/frontend-entrypoint.sh` – generates frontend `config.json` (`apiHost`) at container start
+- `docker/frontend-nginx.conf` – SPA static serving config for the frontend
 - `docker-compose.yml` – Traefik-ready runtime stack for hosted image
 - `.github/workflows/docker-image.yml` – CI build/publish to GHCR
 - `.env.example` – env template for compose/runtime
@@ -50,7 +53,7 @@ End-to-end Docker setup for [StashSphere](https://github.com/stashsphere/stashsp
 3. Start the stack:
 	 - `docker compose up -d`
 4. Check logs:
-	 - `docker compose logs -f stashsphere`
+	 - `docker compose logs -f frontend backend`
 
 On first start, if `config/stashsphere.yaml` is missing and `STASHSPHERE_AUTO_CREATE_CONFIG=true`, the container creates it automatically.
 
@@ -67,17 +70,39 @@ At runtime:
 - migrations run before `serve` when `STASHSPHERE_AUTO_MIGRATE=true`
 - image paths default to `/data/image_store` and `/data/image_cache`
 
+### Permissions note
+
+The container runs as user `stashsphere` by default (`uid=10001`, `gid=10001`).
+So bind-mounted paths like `./config`, `./data/image_store`, and
+`./data/image_cache` must be writable for that UID/GID.
+
+If your host filesystem blocks writes (for example first boot on some Docker
+Desktop setups), you can temporarily run as root by setting:
+
+- `STASHSPHERE_CONTAINER_UID=0`
+- `STASHSPHERE_CONTAINER_GID=0`
+
+After first-start initialization, you can switch back to `10001:10001`.
+
 ## Traefik integration
 
-The service is configured with labels for:
+The stack configures two routers:
 
-- router name: `stashsphere`
-- rule: `Host(${TRAEFIK_HOST})`
+- **Frontend router** `stashsphere-frontend`
+	- rule: `Host(${TRAEFIK_HOST})`
+	- service port: `80`
+- **Backend router** `stashsphere-backend-api`
+	- rule: `Host(${TRAEFIK_HOST}) && (PathPrefix(/api) || PathPrefix(/assets) || PathPrefix(/swagger))`
+	- service port: `8081`
+
+Both use:
+
 - entrypoint: `https`
-- TLS: enabled
+- TLS enabled
 - certresolver: `${TRAEFIK_CERTRESOLVER}` (default `letsencrypt`)
-- target service port: `8081`
 - docker network: `proxy`
+
+The frontend container injects `/config.json` with `apiHost` using `STASHSPHERE_PUBLIC_API_HOST`.
 
 ## GitHub Actions: required secrets and variables
 
@@ -95,8 +120,10 @@ Workflow file: `.github/workflows/docker-image.yml`
 
 ### Optional repository variables
 
-- `IMAGE_NAME` (default: `stashsphere`)
-	- final image: `ghcr.io/<owner>/<IMAGE_NAME>`
+- `BACKEND_IMAGE_NAME` (default: `stashsphere-backend`)
+	- final image: `ghcr.io/<owner>/<BACKEND_IMAGE_NAME>`
+- `FRONTEND_IMAGE_NAME` (default: `stashsphere-frontend`)
+	- final image: `ghcr.io/<owner>/<FRONTEND_IMAGE_NAME>`
 - `STASHSPHERE_REF` (default: `main`)
 	- upstream ref to build from (branch, tag, or commit)
 
