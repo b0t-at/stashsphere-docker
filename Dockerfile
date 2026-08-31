@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM --platform=$TARGETPLATFORM golang:1.25-trixie AS builder
+FROM --platform=$TARGETPLATFORM golang:1.27-trixie AS builder
 
 ARG STASHSPHERE_REF=main
 
